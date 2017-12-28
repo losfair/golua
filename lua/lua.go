@@ -334,8 +334,11 @@ func (L *State) LessThan(index1, index2 int) bool {
 
 // Creates a new lua interpreter state with the given allocation function
 func NewStateAlloc(f Alloc) *State {
+	panic("Not implemented")
+	/*
 	ls := C.clua_newstate(unsafe.Pointer(&f))
 	return newState(ls)
+	*/
 }
 
 // lua_newtable
@@ -464,7 +467,8 @@ func (L *State) Resume(narg int) int {
 
 // lua_setallocf
 func (L *State) SetAllocf(f Alloc) {
-	C.clua_setallocf(L.s, unsafe.Pointer(&f))
+	id := addAllocator(f)
+	C.clua_setallocf(L.s, unsafe.Pointer(uintptr(id)))
 }
 
 // lua_setfenv

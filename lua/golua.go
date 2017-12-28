@@ -18,6 +18,51 @@ import (
 // Type of allocation functions to use with NewStateAlloc
 type Alloc func(ptr unsafe.Pointer, osize uint, nsize uint) unsafe.Pointer
 
+var allocators []Alloc
+var allocatorIds []uint
+var allocatorsMutex sync.Mutex
+
+func addAllocator(alloc Alloc) uint {
+	allocatorsMutex.Lock()
+	defer allocatorsMutex.Unlock()
+
+	var id uint = 0
+
+	if len(allocatorIds) > 0 {
+		id = allocatorIds[len(allocators) - 1]
+		allocatorIds = allocatorIds[:len(allocators) - 1]
+	} else {
+		id = uint(len(allocators))
+		allocators = append(allocators, nil)
+	}
+
+	allocators[id] = alloc
+	return id
+}
+
+func getAllocator(id uint) Alloc {
+	allocatorsMutex.Lock()
+	defer allocatorsMutex.Unlock()
+
+	if allocators[id] == nil {
+		panic("Allocator not found")
+	}
+
+	return allocators[id]
+}
+
+func removeAllocator(id uint) {
+	allocatorsMutex.Lock()
+	defer allocatorsMutex.Unlock()
+
+	if allocators[id] == nil {
+		panic("Allocator not found")
+	}
+
+	allocators[id] = nil
+	allocatorIds = append(allocatorIds, id)
+}
+
 // This is the type of go function that can be registered as lua functions
 type LuaGoFunction func(L *State) int
 
@@ -41,6 +86,7 @@ var goStates map[uintptr]*State
 var goStatesMutex sync.Mutex
 
 func init() {
+	allocators = make([]Alloc, 0)
 	goStates = make(map[uintptr]*State, 16)
 }
 
@@ -257,7 +303,9 @@ func golua_cfunctiontointerface(f *uintptr) interface{} {
 
 //export golua_callallocf
 func golua_callallocf(fp uintptr, ptr uintptr, osize uint, nsize uint) uintptr {
-	return uintptr((*((*Alloc)(unsafe.Pointer(fp))))(unsafe.Pointer(ptr), osize, nsize))
+	id := uint(fp)
+	target := getAllocator(id)
+	return uintptr(target(unsafe.Pointer(ptr), osize, nsize))
 }
 
 //export go_panic_msghandler
