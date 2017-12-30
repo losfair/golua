@@ -29,8 +29,8 @@ func addAllocator(alloc Alloc) uint {
 	var id uint = 0
 
 	if len(allocatorIds) > 0 {
-		id = allocatorIds[len(allocators) - 1]
-		allocatorIds = allocatorIds[:len(allocators) - 1]
+		id = allocatorIds[len(allocatorIds) - 1]
+		allocatorIds = allocatorIds[:len(allocatorIds) - 1]
 	} else {
 		id = uint(len(allocators))
 		allocators = append(allocators, nil)
