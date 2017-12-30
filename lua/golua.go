@@ -80,6 +80,8 @@ type State struct {
 
 	// Freelist for funcs indices, to allow for freeing
 	freeIndices []uint
+
+	customAllocatorId *uint
 }
 
 var goStates map[uintptr]*State

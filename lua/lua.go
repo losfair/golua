@@ -34,7 +34,7 @@ type LuaStackEntry struct {
 }
 
 func newState(L *C.lua_State) *State {
-	newstate := &State{L, 0, make([]interface{}, 0, 8), make([]uint, 0, 8)}
+	newstate := &State{L, 0, make([]interface{}, 0, 8), make([]uint, 0, 8), nil}
 	registerGoState(newstate)
 	C.clua_setgostate(L, C.size_t(newstate.Index))
 	C.clua_initstate(L)
@@ -227,6 +227,10 @@ func (L *State) CheckStack(extra int) bool {
 func (L *State) Close() {
 	C.lua_close(L.s)
 	unregisterGoState(L)
+	if L.customAllocatorId != nil {
+		removeAllocator(*L.customAllocatorId)
+		L.customAllocatorId = nil
+	}
 }
 
 // lua_concat
@@ -352,7 +356,7 @@ func (L *State) NewThread() *State {
 	//TODO: should have same lists as parent
 	//		but may complicate gc
 	s := C.lua_newthread(L.s)
-	return &State{s, 0, nil, nil}
+	return &State{s, 0, nil, nil, nil}
 }
 
 // lua_next
@@ -469,6 +473,15 @@ func (L *State) Resume(narg int) int {
 func (L *State) SetAllocf(f Alloc) {
 	id := addAllocator(f)
 	C.clua_setallocf(L.s, unsafe.Pointer(uintptr(id)))
+
+	if L.customAllocatorId != nil {
+		prevId := *L.customAllocatorId
+		removeAllocator(prevId)
+	} else {
+		L.customAllocatorId = new(uint)
+	}
+
+	*L.customAllocatorId = id
 }
 
 // lua_setfenv
