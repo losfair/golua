@@ -383,7 +383,7 @@ void clua_openos(lua_State* L)
 void clua_hook_function(lua_State *L, lua_Debug *ar)
 {
 	lua_checkstack(L, 2);
-	lua_pushstring(L, "Lua execution quantum exceeded");
+	lua_pushstring(L, "Lua execution quota exceeded");
 	lua_error(L);
 }
 
